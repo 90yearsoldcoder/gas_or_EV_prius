@@ -340,6 +340,8 @@
       evConsumption: 16,
       hybridConsumption: 4.7,
     };
+    const storageKey = 'prius-phev-cost-inputs';
+    const inputKeys = ['gasPrice', 'l2Hourly', 'chargePower', 'evConsumption', 'hybridConsumption'];
 
     const els = {
       gasPrice: document.getElementById('gasPrice'),
@@ -366,6 +368,36 @@
 
     function safeNumber(input) {
       return Number.parseFloat(input.value);
+    }
+
+    function saveInputs() {
+      const values = Object.fromEntries(inputKeys.map(key => [key, els[key].value]));
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(values));
+      } catch {
+        // Ignore storage failures so the calculator still works normally.
+      }
+    }
+
+    function loadSavedInputs() {
+      let saved;
+      try {
+        saved = localStorage.getItem(storageKey);
+      } catch {
+        return;
+      }
+      if (!saved) return;
+
+      try {
+        const values = JSON.parse(saved);
+        inputKeys.forEach((key) => {
+          if (Object.prototype.hasOwnProperty.call(values, key)) {
+            els[key].value = values[key];
+          }
+        });
+      } catch {
+        localStorage.removeItem(storageKey);
+      }
     }
 
     function calculate() {
@@ -416,18 +448,21 @@
       Object.entries(defaults).forEach(([key, value]) => {
         els[key].value = value;
       });
+      saveInputs();
       calculate();
     }
 
     els.calcBtn.addEventListener('click', calculate);
     els.resetBtn.addEventListener('click', reset);
 
-    [els.gasPrice, els.l2Hourly, els.chargePower, els.evConsumption, els.hybridConsumption].forEach(el => {
+    inputKeys.map(key => els[key]).forEach(el => {
+      el.addEventListener('input', saveInputs);
       el.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') calculate();
       });
     });
 
+    loadSavedInputs();
     calculate();
   </script>
 </body>
