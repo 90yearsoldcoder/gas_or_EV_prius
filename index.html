@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prius PHEV 电费 vs 油费计算器</title>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --good: #166534;
+      --good-bg: #dcfce7;
+      --bad: #991b1b;
+      --bad-bg: #fee2e2;
+      --tie: #92400e;
+      --tie-bg: #fef3c7;
+      --shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+
+    .hero {
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(28px, 4vw, 40px);
+      line-height: 1.15;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.7;
+      max-width: 760px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+
+    .card h2 {
+      margin: 0 0 16px;
+      font-size: 20px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .field label {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .field input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      background: #fff;
+    }
+
+    .field input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-size: 15px;
+      cursor: pointer;
+      transition: transform 0.06s ease, opacity 0.2s ease;
+    }
+
+    button:active { transform: translateY(1px); }
+
+    .primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .secondary {
+      background: #eef2ff;
+      color: #3730a3;
+    }
+
+    .summary {
+      display: grid;
+      gap: 14px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 15px;
+      width: fit-content;
+    }
+
+    .pill.good { background: var(--good-bg); color: var(--good); }
+    .pill.bad { background: var(--bad-bg); color: var(--bad); }
+    .pill.tie { background: var(--tie-bg); color: var(--tie); }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .metric {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      background: #fafafa;
+    }
+
+    .metric .label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .metric .value {
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .metric .sub {
+      margin-top: 6px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .note {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: var(--accent-soft);
+      color: #1e3a8a;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .small {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    code {
+      background: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+
+    @media (max-width: 840px) {
+      .grid,
+      .form-grid,
+      .result-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .container {
+        padding: 20px 14px 36px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="hero">
+      <h1>Prius PHEV 2026 电费 vs 油费计算器</h1>
+      <p class="subtitle">
+        适合按“公共 L2 充电桩每小时收费”来判断是否值得充电。默认参数按 Prius PHEV 2026 的常见估算：
+        最大交流充电功率约 <strong>3.3 kW</strong>，纯电能耗约 <strong>16 kWh/100km</strong>，混动油耗约 <strong>4.7 L/100km</strong>。
+      </p>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h2>输入参数</h2>
+        <div class="form-grid">
+          <div class="field">
+            <label for="gasPrice">油价（$/L）</label>
+            <input id="gasPrice" type="number" step="0.01" min="0" value="1.70" />
+          </div>
+
+          <div class="field">
+            <label for="l2Hourly">公共 L2 费用（$/小时）</label>
+            <input id="l2Hourly" type="number" step="0.01" min="0" value="1.50" />
+          </div>
+
+          <div class="field">
+            <label for="chargePower">车辆实际 L2 充电功率（kW）</label>
+            <input id="chargePower" type="number" step="0.1" min="0.1" value="3.3" />
+          </div>
+
+          <div class="field">
+            <label for="evConsumption">纯电能耗（kWh/100km）</label>
+            <input id="evConsumption" type="number" step="0.1" min="0.1" value="16" />
+          </div>
+
+          <div class="field full">
+            <label for="hybridConsumption">混动油耗（L/100km）</label>
+            <input id="hybridConsumption" type="number" step="0.1" min="0.1" value="4.7" />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="primary" id="calcBtn">计算</button>
+          <button class="secondary" id="resetBtn">恢复默认</button>
+        </div>
+
+        <div class="small">
+          说明：如果你冬天能耗更高，或高速通勤较多，可以把纯电能耗改到 <code>17-19</code>；
+          如果主要市区、天气温和，可尝试 <code>15-16</code>。
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>计算结果</h2>
+        <div class="summary">
+          <div id="verdict" class="pill tie">等待输入</div>
+
+          <div class="result-grid">
+            <div class="metric">
+              <div class="label">换算电价</div>
+              <div class="value" id="pricePerKwh">$0.00</div>
+              <div class="sub">按公共 L2 的“每小时收费”反推得到的每度电成本</div>
+            </div>
+
+            <div class="metric">
+              <div class="label">纯电成本</div>
+              <div class="value" id="evCost">$0.00</div>
+              <div class="sub">以 <span id="evConsumptionLabel">16</span> kWh/100km 估算</div>
+            </div>
+
+            <div class="metric">
+              <div class="label">混动油费</div>
+              <div class="value" id="gasCost">$0.00</div>
+              <div class="sub">以 <span id="hybridConsumptionLabel">4.7</span> L/100km 估算</div>
+            </div>
+
+            <div class="metric">
+              <div class="label">差额</div>
+              <div class="value" id="difference">$0.00</div>
+              <div class="sub" id="differenceText">每 100km 的成本差</div>
+            </div>
+          </div>
+
+          <div class="note" id="note">
+            输入参数后点击“计算”。
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">
+      部署方式：把这个文件保存为 <code>index.html</code>，上传到 GitHub 仓库根目录，再开启 GitHub Pages 即可。
+    </div>
+  </div>
+
+  <script>
+    const defaults = {
+      gasPrice: 1.70,
+      l2Hourly: 1.50,
+      chargePower: 3.3,
+      evConsumption: 16,
+      hybridConsumption: 4.7,
+    };
+
+    const els = {
+      gasPrice: document.getElementById('gasPrice'),
+      l2Hourly: document.getElementById('l2Hourly'),
+      chargePower: document.getElementById('chargePower'),
+      evConsumption: document.getElementById('evConsumption'),
+      hybridConsumption: document.getElementById('hybridConsumption'),
+      calcBtn: document.getElementById('calcBtn'),
+      resetBtn: document.getElementById('resetBtn'),
+      verdict: document.getElementById('verdict'),
+      pricePerKwh: document.getElementById('pricePerKwh'),
+      evCost: document.getElementById('evCost'),
+      gasCost: document.getElementById('gasCost'),
+      difference: document.getElementById('difference'),
+      differenceText: document.getElementById('differenceText'),
+      note: document.getElementById('note'),
+      evConsumptionLabel: document.getElementById('evConsumptionLabel'),
+      hybridConsumptionLabel: document.getElementById('hybridConsumptionLabel'),
+    };
+
+    function currency(value, digits = 2) {
+      return `$${Number(value).toFixed(digits)}`;
+    }
+
+    function safeNumber(input) {
+      return Number.parseFloat(input.value);
+    }
+
+    function calculate() {
+      const gasPrice = safeNumber(els.gasPrice);
+      const l2Hourly = safeNumber(els.l2Hourly);
+      const chargePower = safeNumber(els.chargePower);
+      const evConsumption = safeNumber(els.evConsumption);
+      const hybridConsumption = safeNumber(els.hybridConsumption);
+
+      if ([gasPrice, l2Hourly, chargePower, evConsumption, hybridConsumption].some(v => !Number.isFinite(v) || v <= 0)) {
+        els.verdict.className = 'pill bad';
+        els.verdict.textContent = '输入无效';
+        els.note.textContent = '请确保所有输入都为大于 0 的数字。';
+        return;
+      }
+
+      const pricePerKwh = l2Hourly / chargePower;
+      const evCost = pricePerKwh * evConsumption;
+      const gasCost = gasPrice * hybridConsumption;
+      const diff = Math.abs(evCost - gasCost);
+
+      els.pricePerKwh.textContent = currency(pricePerKwh);
+      els.evCost.textContent = currency(evCost);
+      els.gasCost.textContent = currency(gasCost);
+      els.difference.textContent = currency(diff);
+      els.evConsumptionLabel.textContent = evConsumption.toFixed(1).replace(/\.0$/, '');
+      els.hybridConsumptionLabel.textContent = hybridConsumption.toFixed(1).replace(/\.0$/, '');
+
+      if (Math.abs(evCost - gasCost) < 0.05) {
+        els.verdict.className = 'pill tie';
+        els.verdict.textContent = '两者成本基本持平';
+        els.differenceText.textContent = '每 100km 成本差很小';
+        els.note.textContent = `当前估算下，公共 L2 充电与直接跑混动基本打平。对于 Prius PHEV，这通常意味着公共 L2 更偏向“方便补电”，未必是“省钱方案”。`;
+      } else if (evCost < gasCost) {
+        els.verdict.className = 'pill good';
+        els.verdict.textContent = '用电更便宜';
+        els.differenceText.textContent = '每 100km 比用油少花';
+        els.note.textContent = `按当前输入，纯电成本比混动油费低 ${currency(diff)} / 100km。前提是你能以这个小时费率稳定拿到约 ${chargePower.toFixed(1)} kW 的实际充电功率。`;
+      } else {
+        els.verdict.className = 'pill bad';
+        els.verdict.textContent = '用油更便宜';
+        els.differenceText.textContent = '每 100km 比用电少花';
+        els.note.textContent = `按当前输入，公共 L2 充电比直接跑混动贵 ${currency(diff)} / 100km。对充电功率只有约 ${chargePower.toFixed(1)} kW 的 Prius PHEV 来说，按小时收费的公共桩经常会出现这种情况。`;
+      }
+    }
+
+    function reset() {
+      Object.entries(defaults).forEach(([key, value]) => {
+        els[key].value = value;
+      });
+      calculate();
+    }
+
+    els.calcBtn.addEventListener('click', calculate);
+    els.resetBtn.addEventListener('click', reset);
+
+    [els.gasPrice, els.l2Hourly, els.chargePower, els.evConsumption, els.hybridConsumption].forEach(el => {
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') calculate();
+      });
+    });
+
+    calculate();
+  </script>
+</body>
+</html>
